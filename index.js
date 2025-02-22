@@ -40,6 +40,30 @@ async function run() {
         const database = client.db("TaskTrack");
         const userCollection = database.collection('users');
 
+        // endpoints
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            //console.log(user);
+            const query = { email: user.email };
+            const existingUser = await userCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ insertedId: null, message: 'User already exists', status: existingUser.status });
+            } else {
+                const result = await userCollection.insertOne(user);
+                res.send(result);
+            }
+        });
+
+        app.patch('/users', async (req, res) => {
+            const { email, ...updateData } = req.body;
+            const query = { email: email };
+            const update = { $set: updateData };
+            const result = await userCollection.updateOne(query, update);
+            if (result.matchedCount === 0) {
+            return res.send({ message: 'User not found' });
+            }
+            res.send(result);
+        });
 
     } finally {
         // Ensures that the client will close when you finish/error
