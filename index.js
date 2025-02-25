@@ -45,7 +45,6 @@ async function run() {
         //store new user data in database
         app.post('/users', async (req, res) => {
             const user = req.body;
-            //console.log(user);
             const query = { email: user.email };
             const existingUser = await userCollection.findOne(query);
             if (existingUser) {
@@ -60,14 +59,15 @@ async function run() {
         app.get('/users/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
-            // console.log(email);
+            //console.log('Querying user with email:', email);
             const user = await userCollection.findOne(query);
             if (!user) {
-            return res.send({ message: 'User not found' });
+                //console.log('User not found');
+                return res.status(404).send({ message: 'User not found' });
             }
+            //console.log('User found:', user);
             res.send(user);
         });
-
         //since we are updating the previous array with adding new element on the array
         app.patch('/add-task/:email', async (req, res) => {
             const email = req.params.email;
