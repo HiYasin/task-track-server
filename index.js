@@ -1,6 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+
 
 const app = express();
 
@@ -10,7 +11,7 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors(
     {
-        origin: ['http://localhost:5173', 'https://task-track-99a49.web.app'], //replace with client address
+        origin: ['http://localhost:5173', 'https://task-track-99a49.web.app', 'https://task-track-99a49.firebaseapp.com'], //replace with client address
         credentials: true,
     }
 ));
@@ -31,16 +32,17 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         //apis
         const database = client.db("TaskTrack");
         const userCollection = database.collection('users');
 
         // endpoints
+        //store new user data in database
         app.post('/users', async (req, res) => {
             const user = req.body;
             //console.log(user);
@@ -54,30 +56,45 @@ async function run() {
             }
         });
 
-        app.patch('/users', async (req, res) => {
-            const { email, ...updateData } = req.body;
+        //get user data from database by email
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
             const query = { email: email };
-            const update = { $set: updateData };
+            // console.log(email);
+            const user = await userCollection.findOne(query);
+            if (!user) {
+            return res.send({ message: 'User not found' });
+            }
+            res.send(user);
+        });
+
+        //since we are updating the previous array with adding new element on the array
+        app.patch('/add-task/:email', async (req, res) => {
+            const email = req.params.email;
+            const { task } = req.body;
+            // console.log(email, task);
+            const query = { email: email };
+            const update = { $push: { tasks: task } };
+            const result = await userCollection.updateOne(query, update);
+            if (result.matchedCount === 0) {
+                return res.send({ message: 'User not found' });
+            }
+            res.send(result);
+        });
+
+        //since we are updating the previous array with reordered array
+        app.patch('/update-tasks/:email', async (req, res) => {
+            const email = req.params.email;
+            const { tasks } = req.body;
+            const query = { email: email };
+            //console.log(email);
+            const update = { $set: { tasks: tasks } };
             const result = await userCollection.updateOne(query, update);
             if (result.matchedCount === 0) {
             return res.send({ message: 'User not found' });
             }
             res.send(result);
         });
-
-        app.get('/tasks/:email',async(req,res)=>{
-            const email = req.params.email;
-            const query = {email: email}
-            const data = await taskCollection.find(query).toArray();
-            res.send(data)
-        })
-        app.delete('/deleteTask/:id',async(req,res)=>{
-            const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
-            const result = await taskCollection.deleteOne(query);
-            res.send(result);
-        })
-
 
     } finally {
         // Ensures that the client will close when you finish/error
@@ -92,5 +109,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log('My simple server is running at', port);
+    //console.log('My simple server is running at', port);
 })
