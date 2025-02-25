@@ -85,10 +85,10 @@ async function run() {
         //since we are updating the previous array with reordered array
         app.patch('/update-tasks/:email', async (req, res) => {
             const email = req.params.email;
-            const { tasks } = req.body;
+            const { updatedTasks } = req.body;
             const query = { email: email };
-            //console.log(email);
-            const update = { $set: { tasks: tasks } };
+            //console.log(updatedTasks);
+            const update = { $set: { tasks: updatedTasks } };
             const result = await userCollection.updateOne(query, update);
             if (result.matchedCount === 0) {
             return res.send({ message: 'User not found' });
